@@ -10,7 +10,7 @@ import RegisterScreen from "./src/screens/RegisterScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import SplashScreen from "./src/screens/SplashScreen";
-import MapView from './src/screens/PropertyMapView';
+
 
 // Import your context and services
 import AuthContext from "./context/AuthContext";
