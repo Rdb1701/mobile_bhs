@@ -10,7 +10,10 @@ import RegisterScreen from "./src/screens/RegisterScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import SplashScreen from "./src/screens/SplashScreen";
+import MapScreen from "./src/screens/components/MapScreen";
 
+import Reservation from "./src/screens/components/ReservationModal";
+import ReservationScreen from './src/screens/ReservationScreen';
 
 // Import your context and services
 import AuthContext from "./context/AuthContext";
@@ -37,7 +40,7 @@ function LogoutScreen() {
     performLogout();
   }, []);
 
-  return null; // This screen doesn't render anything
+  return null; 
 }
 
 // Bottom Tab Navigator for Authenticated Users
@@ -53,6 +56,9 @@ function MainTabNavigator() {
           } else if (route.name === 'Logout') {
             iconName = focused ? 'log-out' : 'log-out-outline';
           }
+          else if (route.name === 'Reservations') {
+            iconName = focused ? 'book' : 'book-outline';
+          }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -65,16 +71,17 @@ function MainTabNavigator() {
         component={HomeScreen} 
         options={{ headerShown: false }}
       />
+       <Tab.Screen 
+        name="Reservations" 
+        component={ReservationScreen} 
+        options={{ headerShown: false }}
+      />
       <Tab.Screen 
         name="Logout" 
         component={LogoutScreen} 
         options={{ headerShown: false }}
       />
-      {/* <Tab.Screen 
-        name="Logout" 
-        component={MapView} 
-        options={{ headerShown: false }}
-      /> */}
+    
     </Tab.Navigator>
   );
 }
@@ -120,6 +127,8 @@ export default function App() {
             <>
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Create Account" component={RegisterScreen} />
+              <Stack.Screen name="MapScreen" component={MapScreen} />
+              <Stack.Screen name="Reservation" component={Reservation} />
               <Stack.Screen 
                 name="Forgot Password" 
                 component={ForgotPasswordScreen} 

@@ -13,25 +13,19 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rdb1701.boardinghouse"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.rdb1701.boardinghouse"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      [
-        "@rnmapbox/maps",
-        {
-          "RNMapboxMapsDownloadToken": "sk.eyJ1Ijoicm9uYWxkMTcwMSIsImEiOiJjbTR0dnJ5dTgwZXl3MnFzaTQ2YXZzb3hqIn0.GrrxeI8PDfr41vyb9k6ihQ"
-        }
-      ]
-    ],
     "extra": {
       "eas": {
         "projectId": "99047761-e0e4-4da6-88be-31476066519b"
