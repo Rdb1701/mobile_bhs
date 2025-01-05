@@ -3,7 +3,7 @@ import { getToken } from "../services/TokenService";
 
 
 const axios = axiosLib.create({
-    baseURL: "http://192.168.254.103:8000/api",
+    baseURL: "https://agusandelsur.boardinghouse.site/api",
     headers: {
         Accept: "application/json",
     },

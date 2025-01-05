@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "rn-starter",
+    "name": "Dayon",
     "slug": "rn-starter",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/house.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -18,10 +18,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/ic_launcher.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.rdb1701.boardinghouse"
+      "package": "com.rdb1701.boardinghouse",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyD5uhjeX0EkDTz7mEoA0oYEXOpu54QxnVI"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

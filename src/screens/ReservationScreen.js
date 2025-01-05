@@ -76,7 +76,7 @@ export default function ReservationScreen() {
           {new Date(item.date_reserved).toLocaleDateString()}
         </Text>
   
-        <Text style={styles.label}>Description:</Text>
+        <Text style={styles.label}>Message:</Text>
         <Text style={styles.value}>{item.description}</Text>
   
         <Text style={styles.label}>Property Address:</Text>
@@ -143,8 +143,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     padding: 20,
+    marginTop:10,
     color: '#333',
-    backgroundColor: "#",
+    backgroundColor: "#ffffff",
   },
   listContainer: {
     padding: 16,

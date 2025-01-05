@@ -1,11 +1,11 @@
-import { SafeAreaView, View, StyleSheet, Button, Platform } from "react-native";
+import { SafeAreaView, View, StyleSheet, Button, Platform, ScrollView, KeyboardAvoidingView } from "react-native";
 import FormTextField from "./components/FormTextField";
 import { useState, useContext } from "react";
 import axios from "../../utils/axios";
 import { register, loadUser } from "../../services/AuthService";
 import AuthContext from "../../context/AuthContext";
 
-export default function () {
+export default function ({ navigation }) {  // Added navigation prop here
   const { setUser } = useContext(AuthContext);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -13,7 +13,7 @@ export default function () {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [errors, setErrors] = useState({});
 
-  async function handleRegister({ navigation }) {
+  async function handleRegister() {  // Removed navigation from function parameters
     setErrors({});
     try {
       await register({
@@ -23,8 +23,6 @@ export default function () {
         password_confirmation: passwordConfirmation,
         device_name: `${Platform.OS} ${Platform.Version}`,
       });
-
-      //console.log("res", data);
 
       const user = await loadUser();
       setUser(user);
@@ -43,44 +41,68 @@ export default function () {
 
   return (
     <SafeAreaView style={styles.wrapper}>
-      <View style={styles.container}>
-        <FormTextField
-          label="Name"
-          value={name}
-          onChangeText={(text) => setName(text)}
-          errors={errors.name}
-        />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <FormTextField
+              label="Name"
+              value={name}
+              onChangeText={(text) => setName(text)}
+              errors={errors.name}
+            />
 
-        <FormTextField
-          label="Email Address"
-          value={email}
-          onChangeText={(text) => setEmail(text)}
-          keyboardType="email-address"
-          errors={errors.email}
-        />
-        <FormTextField
-          label="Password"
-          secureTextEntry={true}
-          value={password}
-          onChangeText={(text) => setPassword(text)}
-          errors={errors.password}
-        />
+            <FormTextField
+              label="Email Address"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
+              keyboardType="email-address"
+              errors={errors.email}
+            />
+            <FormTextField
+              label="Password"
+              secureTextEntry={true}
+              value={password}
+              onChangeText={(text) => setPassword(text)}
+              errors={errors.password}
+            />
 
-        <FormTextField
-          label="Password Confirmation"
-          secureTextEntry={true}
-          value={passwordConfirmation}
-          onChangeText={(text) => setPasswordConfirmation(text)}
-          errors={errors.password_confirmation}
-        />
+            <FormTextField
+              label="Password Confirmation"
+              secureTextEntry={true}
+              value={passwordConfirmation}
+              onChangeText={(text) => setPasswordConfirmation(text)}
+              errors={errors.password_confirmation}
+            />
 
-        <Button title="Sign Up" onPress={handleRegister} />
-      </View>
+            <Button title="Sign Up" onPress={handleRegister} />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { backgroundColor: "#fff", flex: 1 },
-  container: { padding: 20, rowGap: 16, marginTop: 200},
+  wrapper: { 
+    backgroundColor: "#fff", 
+    flex: 1 
+  },
+  keyboardAvoidingView: {
+    flex: 1
+  },
+  scrollContainer: {
+    flexGrow: 1
+  },
+  container: { 
+    padding: 20, 
+    rowGap: 16,
+    flex: 1,
+    justifyContent: 'center' // Centers content vertically
+  }
 });

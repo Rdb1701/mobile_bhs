@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import {
   SafeAreaView,
   Text,
@@ -12,16 +12,17 @@ import {
   Dimensions,
   TouchableOpacity,
   Modal,
-  Alert  
+  Alert,
 } from "react-native";
 import AuthContext from "../../context/AuthContext";
 import { logout } from "../../services/AuthService";
 import axios from "../../utils/axios";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import ReservationModal from "./components/ReservationModal";
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from "@react-navigation/native";
+import ReviewsModal from "./components/ReviewModal";
 import SplashScreen from "./SplashScreen";
-
+import * as Location from "expo-location";
 
 export default function HomeScreen() {
   const { user, setUser } = useContext(AuthContext);
@@ -32,31 +33,35 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showMap, setShowMap] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [directions, setDirections] = useState(null);
+  const mapRef = useRef(null);
 
-  //reservation state
+  // Reservation state
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
   const isFocused = useIsFocused();
 
-  const PHOTO_BASE_URL = "http://192.168.254.103:8000/storage/";
+  const PHOTO_BASE_URL = "https://agusandelsur.boardinghouse.site/storage/";
+  const GOOGLE_MAPS_API_KEY = "AIzaSyD5uhjeX0EkDTz7mEoA0oYEXOpu54QxnVI";
 
   async function handleLogout() {
     await logout();
     setUser(null);
   }
 
-
   useEffect(() => {
     async function fetchProperties() {
-      if (isFocused) {  // Only fetch when screen is focused
-        setLoading(true);  // Show loading state
+      if (isFocused) {
+        setLoading(true);
         try {
           const response = await axios.get("/properties");
           setProperties(response.data.properties);
           setFilteredProperties(response.data.properties);
         } catch (error) {
           console.error("Failed to fetch properties:", error);
-          Alert.alert('Error', 'Failed to fetch properties');
+          Alert.alert("Error", "Failed to fetch properties");
         } finally {
           setLoading(false);
         }
@@ -92,43 +97,202 @@ export default function HomeScreen() {
     filterProperties(searchQuery, category);
   };
 
+  const getUserLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission to access location was denied");
+      return;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    setUserLocation({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    });
+  };
+
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
   const handleViewMap = async (id) => {
     try {
       const response = await axios.get(`/properties_map/${id}`);
       const { location } = response.data;
 
-      console.log(response.data);
-
-      setSelectedLocation({
+      const propertyLocation = {
         latitude: parseFloat(location.lat),
         longitude: parseFloat(location.long),
-      });
+      };
+
+      setSelectedLocation(propertyLocation);
+
+      if (userLocation) {
+        try {
+          const directionsResponse = await fetch(
+            `https://maps.googleapis.com/maps/api/directions/json?origin=${userLocation.latitude},${userLocation.longitude}&destination=${propertyLocation.latitude},${propertyLocation.longitude}&key=${GOOGLE_MAPS_API_KEY}`
+          );
+
+          const directionsData = await directionsResponse.json();
+
+          if (
+            directionsData.status === "OK" &&
+            directionsData.routes.length > 0
+          ) {
+            const route = directionsData.routes[0];
+            const points = decodePolyline(route.overview_polyline.points);
+            setDirections(points);
+
+            const leg = route.legs[0];
+            Alert.alert(
+              "Route Information",
+              `Distance: ${leg.distance.text}\nEstimated Time: ${leg.duration.text}`
+            );
+          } else {
+            Alert.alert("Error", "Could not find directions to this location");
+          }
+        } catch (error) {
+          console.error("Directions API error:", error);
+          Alert.alert("Error", "Failed to get directions. Please try again.");
+        }
+      } else {
+        Alert.alert(
+          "Location Required",
+          "Please enable location services to view directions"
+        );
+      }
+
       setShowMap(true);
     } catch (error) {
       console.error("Failed to fetch property location:", error);
+      Alert.alert("Error", "Failed to load map location. Please try again.");
     }
   };
 
-  //RESERVATION
   const handleReservationSubmit = async (reservationData) => {
     try {
-        console.log('Submitting reservation:', reservationData); // Log the data being sent
-        const response = await axios.post('/reservations', reservationData);
-        console.log('Response:', response.data); // Log the response
-        Alert.alert('Success', 'Reservation submitted successfully');
-        setShowReservationModal(false);
+      const response = await axios.post("/reservations", reservationData);
+      Alert.alert("Success", "Reservation submitted successfully");
+      setShowReservationModal(false);
     } catch (error) {
-        console.error('Failed to submit reservation:', error.response?.data || error); // Log more detailed error
-        Alert.alert('Error', 'Failed to submit reservation. Please try again.');
+      console.error(
+        "Failed to submit reservation:",
+        error.response?.data || error
+      );
+      Alert.alert("Error", "Failed to submit reservation. Please try again.");
     }
-};
+  };
 
+  function decodePolyline(encoded) {
+    const poly = [];
+    let index = 0,
+      len = encoded.length;
+    let lat = 0,
+      lng = 0;
 
+    while (index < len) {
+      let b,
+        shift = 0,
+        result = 0;
+      do {
+        b = encoded.charAt(index++).charCodeAt(0) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      let dlat = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charAt(index++).charCodeAt(0) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      let dlng = (result & 1) != 0 ? ~(result >> 1) : result >> 1;
+      lng += dlng;
+
+      poly.push({
+        latitude: lat / 1e5,
+        longitude: lng / 1e5,
+      });
+    }
+    return poly;
+  }
+
+  const MapModal = () => (
+    <Modal
+      visible={showMap}
+      animationType="slide"
+      onRequestClose={() => setShowMap(false)}
+    >
+      <View style={styles.mapContainer}>
+        {selectedLocation && (
+          <MapView
+            ref={mapRef}
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            initialRegion={{
+              latitude: selectedLocation.latitude,
+              longitude: selectedLocation.longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            {userLocation && (
+              <Marker
+                coordinate={userLocation}
+                title="Your Location"
+                pinColor="blue"
+                description="You are here"
+              />
+            )}
+            {selectedLocation && (
+              <Marker
+                coordinate={selectedLocation}
+                title="Property Location"
+                description="Destination"
+              />
+            )}
+            {directions && (
+              <Polyline
+                coordinates={directions}
+                strokeWidth={4}
+                strokeColor="#007bff"
+                strokeColors={["#7F0000"]}
+                geodesic={true}
+              />
+            )}
+          </MapView>
+        )}
+        <View style={styles.mapButtons}>
+          <TouchableOpacity
+            style={styles.recenterButton}
+            onPress={() => {
+              if (selectedLocation && mapRef.current) {
+                mapRef.current.animateToRegion({
+                  ...selectedLocation,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05,
+                });
+              }
+            }}
+          >
+            <Text style={styles.buttonText}>Recenter</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowMap(false)}
+          >
+            <Text style={styles.buttonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   if (loading) {
-    return (
-      <SplashScreen/>
-    );
+    return <SplashScreen />;
   }
 
   return (
@@ -137,7 +301,6 @@ export default function HomeScreen() {
         <Text style={styles.header}>Boarding Houses</Text>
       </View>
 
-      {/* Search Bar */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search by property name..."
@@ -145,7 +308,6 @@ export default function HomeScreen() {
         onChangeText={handleSearch}
       />
 
-      {/* Categories */}
       <View style={styles.categoryContainer}>
         {["studio", "pad", "apartment", "room only"].map((category) => (
           <TouchableOpacity
@@ -195,7 +357,7 @@ export default function HomeScreen() {
               <View style={styles.propertyDetailRow}>
                 <Text style={styles.propertyDetailLabel}>Price:</Text>
                 <Text style={styles.propertyPrice}>
-                  ₱{item.price.toLocaleString("en-PH")}
+                  ₱{Number(item.price).toLocaleString("en-PH")}
                 </Text>
               </View>
 
@@ -256,8 +418,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              {/* Add the links for View Map Location and Reserve */}
-              <View style={styles.propertyDetailRow}>
+              <View style={styles.buttonGroup}>
                 <TouchableOpacity
                   style={styles.linkButton}
                   onPress={() => handleViewMap(item.id)}
@@ -274,6 +435,16 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.linkText}>Reserve</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.linkButton, { backgroundColor: "#007bff" }]}
+                  onPress={() => {
+                    setSelectedProperty(item);
+                    setShowReviewsModal(true);
+                  }}
+                >
+                  <Text style={styles.linkText}>Reviews</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -283,47 +454,20 @@ export default function HomeScreen() {
         }
       />
 
-      {/* Modal for Map View */}
-      <Modal
-        visible={showMap}
-        animationType="slide"
-        onRequestClose={() => setShowMap(false)}
-      >
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: selectedLocation?.latitude || 0,
-              longitude: selectedLocation?.longitude || 0,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            {selectedLocation && (
-              <Marker
-                coordinate={{
-                  latitude: selectedLocation.latitude,
-                  longitude: selectedLocation.longitude,
-                }}
-                title="Property Location"
-              />
-            )}
-          </MapView>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setShowMap(false)}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
+      <MapModal />
 
-      {/* RESERVATION MODAL */}
       <ReservationModal
         visible={showReservationModal}
         onClose={() => setShowReservationModal(false)}
         property={selectedProperty}
         onSubmit={handleReservationSubmit}
+      />
+
+      <ReviewsModal
+        visible={showReviewsModal}
+        onClose={() => setShowReviewsModal(false)}
+        propertyId={selectedProperty?.id}
+        propertyName={selectedProperty?.name}
       />
     </SafeAreaView>
   );
@@ -341,7 +485,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    backgroundColor: "#",
+    marginTop: 10,
+    backgroundColor: "#ffffff",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -425,6 +570,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 10,
   },
+  buttonGroup: {
+  flexDirection: "column",
+  marginBottom: 10,
+},
   propertyDetailLabel: {
     fontSize: 18,
     fontWeight: "600",
@@ -461,7 +610,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginTop: 10,
   },
-
   linkButtonReserve: {
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -478,17 +626,46 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   map: {
+    flex: 1,
     width: "100%",
-    height: "90%",
+    height: "100%",
+  },
+  mapButtons: {
+    position: "absolute",
+    bottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    paddingHorizontal: 20,
+  },
+  recenterButton: {
+    backgroundColor: "#007bff",
+    padding: 15,
+    borderRadius: 8,
+    width: "45%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   closeButton: {
-    padding: 16,
-    backgroundColor: "#007bff",
+    backgroundColor: "#dc3545",
+    padding: 15,
+    borderRadius: 8,
+    width: "45%",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  closeButtonText: {
+  buttonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,

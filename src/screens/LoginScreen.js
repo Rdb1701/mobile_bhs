@@ -1,4 +1,4 @@
-import { SafeAreaView, View, StyleSheet, Button, Platform } from "react-native";
+import { SafeAreaView, View, StyleSheet, Button, Platform, Image, ScrollView, KeyboardAvoidingView } from "react-native";
 import FormTextField from "./components/FormTextField";
 import { useState, useContext } from "react";
 import axios from "../../utils/axios";
@@ -20,8 +20,6 @@ export default function ({ navigation }) {
         device_name: `${Platform.OS} ${Platform.Version}`,
       });
 
-      //console.log("res", data);
-
       const user = await loadUser();
       setUser(user);
 
@@ -36,42 +34,64 @@ export default function ({ navigation }) {
 
   return (
     <SafeAreaView style={styles.wrapper}>
-      <View style={styles.container}>
-        <FormTextField
-          label="Email Address"
-          value={email}
-          onChangeText={(text) => setEmail(text)}
-          keyboardType="email-address"
-          errors={errors.email}
-        />
-        <FormTextField
-          label="Password"
-          secureTextEntry={true}
-          value={password}
-          onChangeText={(text) => setPassword(text)}
-          errors={errors.password}
-        />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <Image
+              source={require("../../assets/house.png")}
+              style={styles.logo}
+            />
 
-        <Button title="Login" onPress={handleLogin} />
-        <Button
-          title="Create an Account"
-          onPress={() => {
-            navigation.navigate("Create Account");
-          }}
-        />
+            <FormTextField
+              label="Email Address"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
+              keyboardType="email-address"
+              errors={errors.email}
+            />
+            <FormTextField
+              label="Password"
+              secureTextEntry={true}
+              value={password}
+              onChangeText={(text) => setPassword(text)}
+              errors={errors.password}
+            />
 
-        {/* <Button
-          title="Forgot Password"
-          onPress={() => {
-            navigation.navigate("Forgot Password");
-          }}
-        /> */}
-      </View>
+            <Button title="Login" onPress={handleLogin} />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { backgroundColor: "#fff", flex: 1 },
-  container: { padding: 20, rowGap: 16, marginTop: 200 },
+  wrapper: { 
+    backgroundColor: "#fff", 
+    flex: 1 
+  },
+  keyboardAvoidingView: {
+    flex: 1
+  },
+  scrollContainer: {
+    flexGrow: 1
+  },
+  container: { 
+    padding: 20, 
+    rowGap: 16,
+    flex: 1,
+    justifyContent: 'center' // This will center the content vertically
+  },
+  logo: {
+    width: 80, 
+    height: 80, 
+    alignSelf: "center", 
+    marginBottom: 20
+  },
 });
