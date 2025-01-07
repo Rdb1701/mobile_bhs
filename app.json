@@ -21,12 +21,7 @@
         "foregroundImage": "./assets/ic_launcher.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.rdb1701.boardinghouse",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyD5uhjeX0EkDTz7mEoA0oYEXOpu54QxnVI"
-        }
-      }
+      "package": "com.rdb1701.boardinghouse"
     },
     "web": {
       "favicon": "./assets/favicon.png"

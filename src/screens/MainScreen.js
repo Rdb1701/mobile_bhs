@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const isFocused = useIsFocused();
 
   const PHOTO_BASE_URL = "https://agusandelsur.boardinghouse.site/storage/";
-  const GOOGLE_MAPS_API_KEY = "AIzaSyD5uhjeX0EkDTz7mEoA0oYEXOpu54QxnVI";
+  const GOOGLE_MAPS_API_KEY = import.meta.env.MAPS_API_KEY;
 
   async function handleLogout() {
     await logout();
